@@ -1,0 +1,387 @@
+.\" Copyright (c) 2026 Sergiy Duras
+.\" SPDX-License-Identifier: ISC
+.\"
+.Dd April 19, 2026
+.Dt DURAS 1
+.Os
+.Sh NAME
+.Nm duras
+.Nd daily notes as plain text files, with search and optional GPG encryption
+.Sh SYNOPSIS
+.Nm
+.Op Fl c
+.Nm
+.Cm open
+.Op Ar date
+.Op Cm \-\- Ar editor-args ...
+.Nm
+.Cm append
+.Op Fl d Ar date
+.Ar text
+.Nm
+.Op Fl c
+.Cm append
+.Ar text
+.Nm
+.Op Fl c
+.Cm show
+.Op Ar date
+.Nm
+.Cm list
+.Op Fl n Ar N
+.Nm
+.Cm search
+.Op Fl i
+.Ar keyword
+.Nm
+.Cm tags
+.Op Ar tag
+.Nm
+.Cm stats
+.Nm
+.Cm export
+.Op Ar directory
+.Op Fl \-encrypt
+.Nm
+.Cm path
+.Op Ar date
+.Nm
+.Cm dir
+.Nm
+.Cm today
+.Nm
+.Cm audit
+.Nm
+.Cm echo
+.Op Ar date
+.Nm
+.Cm near
+.Op Ar date
+.Nm
+.Cm mv
+.Ar from
+.Ar to
+.Sh DESCRIPTION
+.Nm
+stores daily notes as plain text files.
+.Pp
+Each day is one file:
+.Bd -literal -offset indent
+YYYY/MM/YYYY-MM-DD.dn
+.Ed
+.Pp
+There is no database, no index, and no hidden state.
+The filesystem is the source of truth.
+Writes are atomic; notes are never partially written.
+Future dates are rejected.
+.Ss Date format
+All commands that accept a
+.Ar date
+argument support two formats:
+.Bl -tag -width "YYYY-MM-DD"
+.It Ar YYYY-MM-DD
+Absolute date.
+.It Ar integer
+Relative offset from today: 0 (today), \-1 (yesterday), +7 (one week ahead).
+.El
+.Ss Commands
+Without arguments,
+.Nm
+opens today's note in
+.Ev EDITOR .
+.Bl -tag -width "export [directory]"
+.It Cm open Op Ar date
+Open note in
+.Ev EDITOR .
+New notes start with a header.
+Arguments after
+.Cm \-\-
+are passed to the editor.
+.It Cm append Op Fl d Ar date Ar text
+Append a timestamped line.
+.Ql \-
+reads from stdin; empty input is rejected.
+.Pp
+With
+.Fl c ,
+encryption is done fully in memory; no plaintext temporary file is written.
+.It Cm show Op Ar date
+Print note to standard output.
+.Pp
+With
+.Fl c ,
+decrypt and print an encrypted note.
+If both plain and encrypted notes exist for the same date, plain is shown
+unless
+.Fl c
+is given.
+.It Cm list Op Fl n Ar N
+List notes, newest first.
+.Ar N
+is the count; 0 lists all.
+Order is by filename (ISO date), not modification time.
+Encrypted notes are marked with a key symbol.
+.It Cm search Op Fl i Ar keyword
+Search plain notes for a literal string.
+Encrypted notes are skipped.
+.It Cm tags Op Ar tag
+Without
+.Ar tag ,
+list all
+.Ql #tag
+tokens with occurrence counts.
+With
+.Ar tag ,
+list notes containing that tag.
+Encrypted notes are skipped.
+.It Cm stats
+Show note counts, total size, date range, and consecutive writing streak.
+.It Cm export Op Ar directory Op Fl \-encrypt
+Create a timestamped
+.Pa tar.gz
+archive in
+.Ar directory
+(default: current directory).
+.Pp
+With
+.Fl \-encrypt ,
+the archive is piped directly into
+.Xr gpg 1 ;
+no plaintext archive is written to disk.
+.It Cm path Op Ar date
+Print the absolute path of a note file.
+.It Cm dir
+Print the notes root directory.
+.It Cm today
+Print today's date as
+.Ql YYYY-MM-DD .
+.It Cm audit
+Validate the notes directory against the duras layout contract.
+Checks performed:
+.Bl -dash -compact
+.It
+Only
+.Ql YYYY/
+directories at the notes root.
+.It
+Only
+.Ql MM/
+directories (01\(en12) inside each year directory.
+.It
+Only files named
+.Pa YYYY-MM-DD.dn
+or
+.Pa YYYY-MM-DD.dn.gpg
+in month directories.
+.It
+Filename date matches the enclosing
+.Ql YYYY/MM/
+path.
+.It
+No future-dated notes.
+.It
+No date with both
+.Pa .dn
+and
+.Pa .dn.gpg
+present.
+.It
+No broken symlinks at any level.
+.El
+.Pp
+Never modifies anything.
+Ignores
+.Fl c .
+Exits 0 if the collection is clean, 1 if any issues are found.
+.It Cm echo Op Ar date
+List paths of all notes that share the same month and day as
+.Ar date
+across all years.
+Output is sorted descending by year.
+.Pp
+This is a pure calendar projection: no content is read, no inference
+is performed.
+.Ar date
+defaults to today.
+If no matches exist, a single line is printed to that effect.
+.It Cm near Op Ar date
+List paths of notes within three days before and after
+.Ar date
+(a seven-day window).
+Only notes that exist on disk are shown, in chronological order.
+Both plain and encrypted variants are included.
+.Pp
+The window is fixed at \(+-3 days; it is not configurable.
+.Ar date
+defaults to today.
+.It Cm mv Ar from Ar to
+Move a note from date
+.Ar from
+to date
+.Ar to .
+Both arguments must be in
+.Ql YYYY-MM-DD
+format; integer offsets are not accepted.
+.Pp
+Both
+.Pa .dn
+and
+.Pa .dn.gpg
+variants are moved if they exist.
+Fails if no note exists at
+.Ar from ,
+or if any note already exists at
+.Ar to .
+Target directories are created automatically; empty source directories
+are removed after the move.
+Silent on success.
+.El
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl c , Fl \-confidential
+Use GPG encryption.
+Applies to
+.Cm open ,
+.Cm append ,
+.Cm show ,
+.Cm path .
+.Pp
+Decryption uses a temporary file (RAM-backed when available).
+.It Fl d Ar date , Fl \-date Ar date
+Select date for
+.Cm append .
+.It Fl i , Fl \-ignore-case
+Case-insensitive search.
+.It Fl n Ar N , Fl \-count Ar N
+Limit output for
+.Cm list .
+.It Fl \-encrypt
+Encrypt archive in
+.Cm export .
+.El
+.Sh ENVIRONMENT
+.Bl -tag -width "DURAS_GPG_KEY"
+.It Ev DURAS_DIR
+Notes directory (default:
+.Pa ~/Documents/Notes )
+.It Ev EDITOR
+Editor (fallback:
+.Xr nano 1 ,
+.Xr vi 1 ,
+.Xr ed 1 )
+.It Ev DURAS_GPG_KEY
+GPG recipient (default: self)
+.El
+.Sh FILES
+.Bl -tag -width "YYYY/MM/YYYY-MM-DD.dn.gpg"
+.It Pa YYYY/MM/YYYY-MM-DD.dn
+Plain note
+.It Pa YYYY/MM/YYYY-MM-DD.dn.gpg
+Encrypted note
+.It Pa /dev/shm
+Temporary location for decrypted notes when available
+.El
+.Sh EXIT STATUS
+.Bl -tag -width Ds
+.It 0
+Success
+.It 1
+Generic error
+.It 2
+Not found
+.It 3
+Invalid input
+.It 4
+External tool failure
+.El
+.Sh EXAMPLES
+.Ss One-minute workflow
+.Bd -literal -offset indent
+duras                  # open today
+duras append "note"    # quick capture
+duras search note      # find it later
+.Ed
+.Pp
+.Ss Basic use
+.Bd -literal -offset indent
+duras
+duras open -1
+duras open \-\- +10
+.Ed
+.Pp
+.Ss Quick capture
+.Bd -literal -offset indent
+duras append "fix bug #todo"
+duras append -d -1 "note"
+cat file.txt | duras append -
+.Ed
+.Pp
+.Ss Encrypted notes
+.Bd -literal -offset indent
+duras -c open
+duras -c append "private"
+duras -c show
+.Ed
+.Pp
+.Ss Search and tags
+.Bd -literal -offset indent
+duras search error
+duras search todo -i
+duras tags
+duras tags project
+.Ed
+.Pp
+.Ss Listing and stats
+.Bd -literal -offset indent
+duras list
+duras list -n 0
+duras stats
+.Ed
+.Pp
+.Ss Backup
+.Bd -literal -offset indent
+duras export ~/backup
+duras export ~/backup \-\-encrypt
+.Ed
+.Pp
+.Ss Shell integration
+.Bd -literal -offset indent
+grep -R "#todo" "$(duras dir)"
+wc -l "$(duras path)"
+.Ed
+.Pp
+.Ss Audit
+.Bd -literal -offset indent
+duras audit
+duras audit && echo "clean"
+duras audit || echo "problems found"
+.Ed
+.Ss Temporal projection
+.Bd -literal -offset indent
+duras echo
+duras echo 2026-03-15
+duras near
+duras near 2026-01-01
+.Ed
+.Pp
+.Ss Index repair
+.Bd -literal -offset indent
+duras mv 2026-04-17 2026-04-16
+.Ed
+.Sh SEE ALSO
+.Xr gpg 1 ,
+.Xr grep 1 ,
+.Xr tar 1
+.Sh AUTHORS
+.An Sergiy Duras
+.Sh CAVEATS
+.Bl -dash -compact
+.It
+Encrypted notes are not searchable.
+.It
+Depends on external
+.Xr gpg 1 .
+.El
+.Sh BUGS
+Report issues:
+.Lk https://codeberg.org/duras/duras

@@ -1,6 +1,11 @@
-ISC License:
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Source: https://codeberg.org/duras/duras
 
-Copyright (c) 2026 by Sergiy Duras https://codeberg.org/duras/duras
+Files: *
+Copyright: 2026 Sergiy Duras
+License: ISC
+
+SPDX-License-Identifier: ISC
 
 Permission to use, copy, modify, and/or distribute this software for
 any purpose with or without fee is hereby granted, provided that the

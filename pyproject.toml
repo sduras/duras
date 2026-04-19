@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "duras"
+version = "1.0.0"
+description = "plain-text daily notes with optional encryption"
+readme = "README.md"
+license = {text = "ISC"}
+authors = [{ name = "Sergiy Duras" }]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+duras = "duras.cli:main"
+
+[tool.setuptools]
+packages = ["duras"]
+
+[tool.black]
+line-length = 79
+target-version = ["py313"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+show_error_codes = true
+pretty = true
+warn_unused_ignores = true
+warn_redundant_casts = true
