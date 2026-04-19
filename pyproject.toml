@@ -1,16 +1,36 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "duras"
-version = "1.0.0"
+version = "1.0.6"
 description = "plain-text daily notes with optional encryption"
 readme = "README.md"
 license = "ISC"
 authors = [{ name = "Sergiy Duras" }]
 requires-python = ">=3.13"
-dependencies = []
+keywords = ["notes", "diary", "plaintext", "gpg", "encryption", "cli", "terminal"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: ISC License (ISCL)",
+    "Operating System :: POSIX",
+    "Operating System :: POSIX :: BSD",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Utilities",
+]
+
+[project.urls]
+Homepage = "https://codeberg.org/duras/duras"
+Repository = "https://codeberg.org/duras/duras"
+"Bug Tracker" = "https://codeberg.org/duras/duras/issues"
+Changelog = "https://codeberg.org/duras/duras/releases"
 
 [project.scripts]
 duras = "duras.cli:main"

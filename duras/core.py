@@ -18,7 +18,7 @@ import tarfile
 import tempfile
 from typing import Optional
 
-VERSION = "1.0.0"
+VERSION = "1.0.6"
 
 DEFAULT_NOTES_DIR = os.path.join(os.path.expanduser("~"), "Documents", "Notes")
 NOTE_EXT = ".dn"
