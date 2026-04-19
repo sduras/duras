@@ -7,7 +7,7 @@ name = "duras"
 version = "1.0.0"
 description = "plain-text daily notes with optional encryption"
 readme = "README.md"
-license = {text = "ISC"}
+license = "ISC"
 authors = [{ name = "Sergiy Duras" }]
 requires-python = ">=3.13"
 dependencies = []
