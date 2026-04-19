@@ -2,7 +2,28 @@
 
 [![License](https://img.shields.io/badge/license-ISC-blue)](https://opensource.org/licenses/ISC)
 
-**Daily notes as plain text files, with search and optional encryption**.
+**Daily notes as plain text files, with search and optional encryption.**
+
+---
+
+## Install
+
+```sh
+pip install duras
+```
+
+Requires Python 3.13+. No dependencies. `gpg` optional for encrypted notes.
+
+---
+
+## Quick start
+
+```sh
+duras               # open today's note in $EDITOR
+duras append "fix login bug #todo"
+duras search todo
+duras tags
+```
 
 ---
 
@@ -11,12 +32,8 @@
 One note per day:
 
 ```
-
 YYYY/MM/YYYY-MM-DD.dn
-
 ```
-
-Properties:
 
 - plain UTF-8 text
 - filesystem is the index
@@ -26,10 +43,8 @@ Properties:
 Encrypted note:
 
 ```
-
 YYYY/MM/YYYY-MM-DD.dn.gpg
-
-````
+```
 
 via the [GNU Privacy Guard](https://gnupg.org/).
 
@@ -52,43 +67,15 @@ Not a fit:
 
 ---
 
-## Variants
-
-### duras
-
-- system `gpg`
-- no dependencies
-- Unix-like systems
-
-### duras_ashell
-
-- iOS [a-Shell mini](https://holzschu.github.io/a-Shell_iOS/)
-- [PGPy](https://github.com/SecurityInnovation/PGPy) (pure Python)
-- no external binaries
-- `.asc` key handling (no keyring)
-- compatible encrypted format
-
----
-
-## Usage
-
-```sh
-duras
-duras append "note"
-duras search term
-```
-
----
-
 ## Commands
 
 ### open
 
 ```sh
-duras open
-duras open -1
+duras               # today
+duras open -1       # yesterday
 duras open 2026-04-19
-duras open -- +7
+duras open -- +10   # pass +10 to $EDITOR (jump to line)
 ```
 
 ### append
@@ -99,7 +86,56 @@ duras append -d -1 "yesterday"
 cat file | duras append -
 ```
 
-`-` = stdin
+`-` reads from stdin.
+
+### show
+
+```sh
+duras show
+duras show -1
+```
+
+### list / stats
+
+```sh
+duras list
+duras list -n 0     # all notes
+duras stats
+```
+
+Order: by filename (ISO date), not mtime.
+
+### search / tags
+
+```sh
+duras search error
+duras search todo -i    # case-insensitive
+duras tags              # all tags with counts
+duras tags project      # notes containing #project
+```
+
+Literal match, not regex. Encrypted notes excluded.
+
+### export
+
+```sh
+duras export ~/backup
+duras export ~/backup --encrypt
+```
+
+Creates a timestamped `.tar.gz`. `--encrypt` pipes through `gpg`; no plaintext archive is written.
+
+### other
+
+```sh
+duras path          # absolute path to today's note
+duras dir           # notes root directory
+duras today         # print today's date
+duras audit         # validate directory structure
+duras echo          # notes on this date in past years
+duras near          # notes within ±3 days of today
+duras mv 2026-04-17 2026-04-16
+```
 
 ---
 
@@ -111,79 +147,32 @@ duras -c append "secret"
 duras -c show
 ```
 
-Notes:
-
-* uses system `gpg`
-* append is memory-only
-* editor uses temp file
-
----
-
-## Search / tags
-
-```sh
-duras search error
-duras search todo -i
-duras tags
-```
-
-* literal match (not regex)
-* encrypted notes excluded
-
----
-
-## Listing
-
-```sh
-duras list
-duras list -n 0
-duras stats
-```
-
-Order: filename (date), not mtime.
-
----
-
-## Export
-
-```sh
-duras export ~/backup
-duras export ~/backup --encrypt
-```
-
-Creates archive; optional encryption avoids plaintext export.
+- uses system `gpg`
+- `append -c` is memory-only; no plaintext temp file
+- `open -c` writes a temp file to `/dev/shm` when available
 
 ---
 
 ## Dates
 
 ```
-YYYY-MM-DD  absolute
-0           today
--1          yesterday
-+7          future
+YYYY-MM-DD   absolute
+0            today
+-1           yesterday
+-7           one week ago
 ```
 
-**Future dates are rejected**.
+Future dates are rejected.
 
 ---
 
 ## Environment
 
-| var          | meaning                                |
-| ------------ | -------------------------------------- |
-| DURAS_DIR     | notes dir (default: ~/Documents/Notes) |
-| EDITOR       | editor fallback: nano / vi / ed        |
-| DURAS_GPG_KEY | encryption recipient                   |
-
----
-
-## Behavior
-
-* one file per day
-* plain + encrypted may coexist
-* atomic writes
-* no index layer
+| variable        | meaning                                      |
+| --------------- | -------------------------------------------- |
+| `DURAS_DIR`     | notes directory (default: ~/Documents/Notes) |
+| `EDITOR`        | editor (fallback: nano, vi, ed)              |
+| `DURAS_GPG_KEY` | GPG recipient (default: self)                |
 
 ---
 
@@ -201,15 +190,27 @@ YYYY-MM-DD  absolute
 
 ## Limits
 
-* encrypted notes not searchable
-* depends on `gpg`
+- encrypted notes are not searchable
+- depends on system `gpg` for encryption
 
 ---
 
 ## Docs
 
-* **`man duras`**
-* [https://codeberg.org/duras/duras](https://codeberg.org/duras/duras)
+- `man duras`
+- <https://codeberg.org/duras/duras>
+
+---
+
+## Variants
+
+### duras
+
+Standard variant for Unix-like systems. Uses system `gpg`. No dependencies.
+
+### duras_ashell
+
+For iOS [a-Shell mini](https://holzschu.github.io/a-Shell_iOS/). Uses [PGPy](https://github.com/SecurityInnovation/PGPy) (pure Python) instead of system `gpg`. No external binaries. Handles `.asc` keys directly; no keyring. Compatible encrypted format.
 
 ---
 
