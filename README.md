@@ -198,7 +198,7 @@ Future dates are rejected.
 ## Docs
 
 - `man duras`
-- <https://codeberg.org/duras/duras>
+- <https://codeberg.org/duras/duras/wiki>
 
 ---
 
