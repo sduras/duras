@@ -2,8 +2,6 @@ if exists('g:loaded_duras_bridge') | finish | endif
 let g:loaded_duras_bridge = 1
 
 
-" On a-Shell, pbpaste is the iOS system clipboard source.
-" getreg('+') does not reliably sync with the system clipboard on iOS.
 function! s:ClipGet()
     let l:text = trim(system('pbpaste'))
     if empty(l:text)
@@ -24,7 +22,6 @@ function! s:BufGet()
 endfunction
 
 
-" unused; kept for reference
 function! s:Exec(cmd)
     return system(a:cmd)
 endfunction
