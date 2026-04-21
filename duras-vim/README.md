@@ -1,6 +1,6 @@
 # duras_bridge.vim plugin
 
-**Purpose**: minimal bridge between Vim buffer, system clipboard, and `duras` CLI.
+**Purpose**: minimal bridge between [Vim](https://www.vim.org/) buffer, system clipboard, and `duras` CLI.
 
 No dependencies. No plugin manager required.
 
