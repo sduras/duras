@@ -2,12 +2,6 @@ if exists('g:loaded_duras_bridge') | finish | endif
 let g:loaded_duras_bridge = 1
 
 
-" ----------------------------
-" Clipboard
-" ----------------------------
-
-" system() on some Linux builds captures stderr; always guard with v:shell_error.
-" Priority: pbpaste (iOS/macOS), xclip, xsel (Linux X11), getreg('+') fallback.
 function! s:ClipGet()
     if executable('pbpaste')
         let l:text = trim(system('pbpaste'))
@@ -37,24 +31,15 @@ function! s:ClipSet(text)
 endfunction
 
 
-" ----------------------------
-" Core helpers
-" ----------------------------
-
 function! s:BufGet()
     return join(getline(1, '$'), "\n")
 endfunction
 
 
-" unused; kept for reference
 function! s:Exec(cmd)
     return system(a:cmd)
 endfunction
 
-
-" ----------------------------
-" Open note
-" ----------------------------
 
 command! -nargs=? DOpen call s:DOpen(<q-args>)
 
@@ -80,10 +65,6 @@ function! s:DOpen(arg)
 endfunction
 
 
-" ----------------------------
-" Append (buffer / visual / clipboard)
-" ----------------------------
-
 command! -range=% -nargs=* DAppend <line1>,<line2>call s:DAppend(<q-args>)
 
 function! s:DAppend(arg) range
@@ -102,10 +83,6 @@ function! s:DAppend(arg) range
     endif
 endfunction
 
-
-" ----------------------------
-" Search UI
-" ----------------------------
 
 command! -nargs=+ DSearch call s:DSearch(<q-args>)
 
@@ -138,10 +115,6 @@ function! s:OpenFromSearch()
 endfunction
 
 
-" ----------------------------
-" Clipboard utilities
-" ----------------------------
-
 command! DClipYank  call s:ClipSet(s:BufGet())
 command! DClipPaste call s:DClipPaste()
 
@@ -154,10 +127,6 @@ function! s:DClipPaste()
     call append(line('.'), split(l:text, "\n"))
 endfunction
 
-
-" ----------------------------
-" Utilities
-" ----------------------------
 
 command! DStats    echo system('duras stats')
 command! DPath     echo trim(system('duras path'))
@@ -175,10 +144,6 @@ function! s:DTags(tag)
     echo l:out
 endfunction
 
-
-" ----------------------------
-" Keybindings
-" ----------------------------
 
 nnoremap <leader>do :DOpen<CR>
 nnoremap <leader>ds :DSearch 
