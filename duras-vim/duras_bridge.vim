@@ -31,16 +31,23 @@ endfunction
 command! -nargs=? DOpen call s:DOpen(<q-args>)
 
 function! s:DOpen(arg)
-    let l:path = trim(system('duras path ' . a:arg))
+    let l:cmd = empty(a:arg) ? 'duras path' : 'duras path ' . shellescape(a:arg)
+    let l:path = trim(system(l:cmd))
 
     if v:shell_error != 0 || empty(l:path)
-        echoerr "duras: path not found"
+        echoerr 'duras: path failed'
         return
     endif
 
-    if filereadable(l:path) == 0
-        echoerr "duras: file missing " . l:path
-        return
+    if !filereadable(l:path)
+        let l:open_cmd = empty(a:arg)
+            \ ? 'EDITOR=true duras open'
+            \ : 'EDITOR=true duras open ' . shellescape(a:arg)
+        call system(l:open_cmd)
+        if v:shell_error != 0
+            echoerr 'duras: failed to initialize note'
+            return
+        endif
     endif
 
     execute 'edit ' . fnameescape(l:path)
