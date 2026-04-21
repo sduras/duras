@@ -1,16 +1,16 @@
-# duras_bridge.vim plugin
+## duras_bridge.vim — a-shell Vim integration layer
 
-**Purpose**: minimal bridge between [Vim](https://www.vim.org/) buffer, system clipboard, and `duras` CLI.
+Purpose: minimal bridge between Vim buffer, system clipboard, and `duras` CLI.
 
 No dependencies. No plugin manager required.
 
 ---
 
-##  Installation
+# 1. Installation
 
-### Locate Vim runtime directory
+## 1.1 Locate Vim runtime directory
 
-In a-shell Vim, one of these typically works:
+In a-Shell Vim, one of these typically works:
 
 ```sh
 ~/.vim/plugin/
@@ -32,7 +32,7 @@ mkdir -p ~/.vim/plugin
 
 ---
 
-### Install plugin
+## 1.2 Install plugin file
 
 Create file:
 
@@ -44,7 +44,7 @@ Paste plugin content.
 
 ---
 
-### Verify load
+## 1.3 Verify load
 
 Open Vim and run:
 
@@ -66,7 +66,7 @@ If missing:
 
 ---
 
-### Prerequisites check
+## 1.4 Prerequisites check
 
 Inside Vim:
 
@@ -86,11 +86,13 @@ Clipboard test:
 
 If empty or error:
 
-* plugin still works, but clipboard fallback will rely on `getreg('+')`
+* plugin still works, but clipboard reads fall back to `getreg('+')`
 
 ---
 
-## Command reference
+# 2. Command reference
+
+## 2.1 Open notes
 
 ### Open today
 
@@ -104,7 +106,22 @@ If empty or error:
 :DOpen 2026-04-20
 ```
 
+### Open by offset
+
+```vim
+:DOpen -1
+```
+
+Behavior:
+
+* resolves file path via `duras path`
+* opens directly in current Vim instance (`:edit`)
+* if the note does not exist yet, Vim opens an empty buffer at that path (standard Vim new-file behavior)
+* no nested editor processes
+
 ---
+
+## 2.2 Append data
 
 ### Append current buffer to today
 
@@ -121,15 +138,28 @@ If empty or error:
 :DAppend
 ```
 
+### Append inline text
+
+```vim
+:DAppend meeting notes for Monday
+```
+
+No quoting needed. Everything after `:DAppend ` is the text.
+
 ### Append clipboard
 
 ```vim
 :DAppend -
 ```
 
+Behavior:
+
+* reads from `pbpaste` (iOS system clipboard)
+* sends text to `duras append -` via stdin
+
 ---
 
-### Search notes
+## 2.3 Search notes
 
 ```vim
 :DSearch keyword
@@ -144,7 +174,7 @@ Example:
 Result:
 
 * opens temporary buffer `[duras-search]`
-* Enter on a line opens matching note
+* `<CR>` on a result line opens the matching note
 
 Navigation:
 
@@ -153,7 +183,9 @@ Navigation:
 
 ---
 
-### Copy buffer → clipboard
+## 2.4 Clipboard utilities
+
+### Copy entire buffer → clipboard
 
 ```vim
 :DClipYank
@@ -165,13 +197,15 @@ Navigation:
 :DClipPaste
 ```
 
-### Copy current note path
+### Copy current note path → clipboard
 
 ```vim
 :DCopyPath
 ```
 
 ---
+
+## 2.5 Utilities
 
 ### Show stats
 
@@ -185,23 +219,140 @@ Navigation:
 :DPath
 ```
 
----
-
-
-## Recommended keybindings
+### List all tags
 
 ```vim
-<leader>do  → open note
-<leader>da  → append
-<leader>ds  → search
-<leader>dp  → path
+:DTags
+```
+
+### List notes containing a tag
+
+```vim
+:DTags project
+```
+
+Note: do not prefix with `#`. Pass the bare tag name.
+
+---
+
+# 3. Daily workflows
+
+## 3.1 Quick journaling
+
+Open today:
+
+```vim
+:DOpen
+```
+
+Append a thought:
+
+```vim
+:DAppend meeting notes for Monday
+```
+
+Or:
+
+* copy text in Safari
+* switch to Vim
+* run:
+
+```vim
+:DAppend -
+```
+
+---
+
+## 3.2 Search-driven retrieval
+
+```vim
+:DSearch project x
+```
+
+Then:
+
+* move cursor to result
+* press `<Enter>`
+* note opens directly
+
+---
+
+## 3.3 Clipboard-driven capture
+
+Typical a-Shell flow:
+
+1. Copy text anywhere (Safari, terminal, etc.)
+2. In Vim:
+
+```vim
+:DAppend -
+```
+
+No intermediate files.
+
+---
+
+## 3.4 Navigation without nesting editors
+
+Old behavior (avoided):
+
+* `duras open` → spawns `$EDITOR` → nested Vim
+
+New behavior:
+
+* resolve path via `duras path`
+* `:edit file`
+* single Vim session only
+
+---
+
+# 4. Keybindings (optional)
+
+## Recommended defaults
+
+```vim
+<leader>do  → :DOpen
+<leader>da  → :DAppend
+<leader>ds  → :DSearch (cursor ready for input)
+<leader>dp  → :DPath
 ```
 
 Visual mode:
 
 ```vim
-<leader>da  → append selection
+<leader>da  → :DAppend (selection)
 ```
 
 ---
 
+# 5. Design guarantees
+
+## Stability rules
+
+* No external editor spawning from Vim
+* No background jobs
+* No async dependencies
+* No state persistence inside plugin
+* Failures surface immediately via `echoerr`
+
+---
+
+## Data flow model
+
+```
+Vim buffer
+   ↕
+clipboard (pbcopy / pbpaste → getreg('+') fallback)
+   ↕
+duras CLI (append / search / path / show / tags)
+   ↕
+plain text files (.dn)
+```
+
+---
+
+# 6. Operational notes (a-Shell constraints)
+
+* `pbpaste` is the primary clipboard source; `getreg('+')` is the fallback if `pbpaste` returns empty
+* `pbcopy` may be missing → `setreg('+')` still sets the Vim register
+* system calls are synchronous → small latency on large note sets is expected and not handled

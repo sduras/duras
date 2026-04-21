@@ -1,13 +1,14 @@
 if exists('g:loaded_duras_bridge') | finish | endif
 let g:loaded_duras_bridge = 1
 
+
+" On a-Shell, pbpaste is the iOS system clipboard source.
+" getreg('+') does not reliably sync with the system clipboard on iOS.
 function! s:ClipGet()
-    let l:text = getreg('+')
-
+    let l:text = trim(system('pbpaste'))
     if empty(l:text)
-        silent! let l:text = system('pbpaste')
+        let l:text = getreg('+')
     endif
-
     return l:text
 endfunction
 
@@ -23,6 +24,7 @@ function! s:BufGet()
 endfunction
 
 
+" unused; kept for reference
 function! s:Exec(cmd)
     return system(a:cmd)
 endfunction
@@ -40,12 +42,10 @@ function! s:DOpen(arg)
     endif
 
     if !filereadable(l:path)
-        let l:open_cmd = empty(a:arg)
-            \ ? 'EDITOR=true duras open'
-            \ : 'EDITOR=true duras open ' . shellescape(a:arg)
-        call system(l:open_cmd)
+        let l:open_cmd = empty(a:arg) ? 'duras open' : 'duras open ' . shellescape(a:arg)
+        call system('EDITOR=echo ' . l:open_cmd)
         if v:shell_error != 0
-            echoerr 'duras: failed to initialize note'
+            echoerr 'duras: failed to initialise note'
             return
         endif
     endif
@@ -68,7 +68,7 @@ function! s:DAppend(arg) range
     call system('duras append -', l:text)
 
     if v:shell_error != 0
-        echoerr "duras: append failed"
+        echoerr 'duras: append failed'
     endif
 endfunction
 
@@ -79,13 +79,13 @@ function! s:DSearch(q)
     let l:out = system('duras search ' . shellescape(a:q))
 
     if v:shell_error != 0 || empty(l:out)
-        echo "No results"
+        echo 'No results'
         return
     endif
 
-    belowright new [duras-search]
+    belowright new
     setlocal buftype=nofile bufhidden=wipe noswapfile nowrap cursorline
-
+    silent execute 'file [duras-search]'
     call setline(1, split(l:out, "\n"))
 
     nnoremap <silent><buffer> <CR> :call <SID>OpenFromSearch()<CR>
@@ -93,8 +93,7 @@ endfunction
 
 
 function! s:OpenFromSearch()
-    let l:line = getline('.')
-    let l:date = matchstr(l:line, '^\d\{4\}-\d\{2\}-\d\{2\}')
+    let l:date = matchstr(getline('.'), '^\d\{4\}-\d\{2\}-\d\{2\}')
 
     if empty(l:date)
         return
@@ -105,12 +104,36 @@ function! s:OpenFromSearch()
 endfunction
 
 
-command! DStats echo system('duras stats')
+command! DClipYank  call s:ClipSet(s:BufGet())
+command! DClipPaste call s:DClipPaste()
 
-command! DPath echo trim(system('duras path'))
+function! s:DClipPaste()
+    let l:text = s:ClipGet()
+    if empty(l:text)
+        echoerr 'duras: clipboard is empty'
+        return
+    endif
+    call append(line('.'), split(l:text, "\n"))
+endfunction
+
+
+
+command! DStats    echo system('duras stats')
+command! DPath     echo trim(system('duras path'))
 command! DCopyPath call s:ClipSet(trim(system('duras path')))
 
-command! -nargs=? DTags call s:DSearch('tags ' . <q-args>)
+command! -nargs=? DTags call s:DTags(<q-args>)
+
+function! s:DTags(tag)
+    let l:cmd = empty(a:tag) ? 'duras tags' : 'duras tags ' . shellescape(a:tag)
+    let l:out = system(l:cmd)
+    if v:shell_error != 0 || empty(l:out)
+        echo 'No tags'
+        return
+    endif
+    echo l:out
+endfunction
+
 
 
 nnoremap <leader>do :DOpen<CR>
