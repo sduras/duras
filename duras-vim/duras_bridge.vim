@@ -2,30 +2,59 @@ if exists('g:loaded_duras_bridge') | finish | endif
 let g:loaded_duras_bridge = 1
 
 
+" ----------------------------
+" Clipboard
+" ----------------------------
+
+" system() on some Linux builds captures stderr; always guard with v:shell_error.
+" Priority: pbpaste (iOS/macOS), xclip, xsel (Linux X11), getreg('+') fallback.
 function! s:ClipGet()
-    let l:text = trim(system('pbpaste'))
-    if empty(l:text)
-        let l:text = getreg('+')
+    if executable('pbpaste')
+        let l:text = trim(system('pbpaste'))
+        if v:shell_error == 0 | return l:text | endif
     endif
-    return l:text
+    if executable('xclip')
+        let l:text = trim(system('xclip -selection clipboard -o'))
+        if v:shell_error == 0 | return l:text | endif
+    endif
+    if executable('xsel')
+        let l:text = trim(system('xsel --clipboard --output'))
+        if v:shell_error == 0 | return l:text | endif
+    endif
+    return getreg('+')
 endfunction
 
 
 function! s:ClipSet(text)
     call setreg('+', a:text)
-    silent! call system('pbcopy', a:text)
+    if executable('pbcopy')
+        silent! call system('pbcopy', a:text)
+    elseif executable('xclip')
+        silent! call system('xclip -selection clipboard', a:text)
+    elseif executable('xsel')
+        silent! call system('xsel --clipboard --input', a:text)
+    endif
 endfunction
 
+
+" ----------------------------
+" Core helpers
+" ----------------------------
 
 function! s:BufGet()
     return join(getline(1, '$'), "\n")
 endfunction
 
 
+" unused; kept for reference
 function! s:Exec(cmd)
     return system(a:cmd)
 endfunction
 
+
+" ----------------------------
+" Open note
+" ----------------------------
 
 command! -nargs=? DOpen call s:DOpen(<q-args>)
 
@@ -51,7 +80,11 @@ function! s:DOpen(arg)
 endfunction
 
 
-command! -range=% -nargs=? DAppend <line1>,<line2>call s:DAppend(<q-args>)
+" ----------------------------
+" Append (buffer / visual / clipboard)
+" ----------------------------
+
+command! -range=% -nargs=* DAppend <line1>,<line2>call s:DAppend(<q-args>)
 
 function! s:DAppend(arg) range
     if a:arg ==# '-'
@@ -69,6 +102,10 @@ function! s:DAppend(arg) range
     endif
 endfunction
 
+
+" ----------------------------
+" Search UI
+" ----------------------------
 
 command! -nargs=+ DSearch call s:DSearch(<q-args>)
 
@@ -101,6 +138,10 @@ function! s:OpenFromSearch()
 endfunction
 
 
+" ----------------------------
+" Clipboard utilities
+" ----------------------------
+
 command! DClipYank  call s:ClipSet(s:BufGet())
 command! DClipPaste call s:DClipPaste()
 
@@ -114,6 +155,9 @@ function! s:DClipPaste()
 endfunction
 
 
+" ----------------------------
+" Utilities
+" ----------------------------
 
 command! DStats    echo system('duras stats')
 command! DPath     echo trim(system('duras path'))
@@ -132,6 +176,9 @@ function! s:DTags(tag)
 endfunction
 
 
+" ----------------------------
+" Keybindings
+" ----------------------------
 
 nnoremap <leader>do :DOpen<CR>
 nnoremap <leader>ds :DSearch 
