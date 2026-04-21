@@ -322,37 +322,3 @@ Visual mode:
 ```vim
 <leader>da  → :DAppend (selection)
 ```
-
----
-
-# 5. Design guarantees
-
-## Stability rules
-
-* No external editor spawning from Vim
-* No background jobs
-* No async dependencies
-* No state persistence inside plugin
-* Failures surface immediately via `echoerr`
-
----
-
-## Data flow model
-
-```
-Vim buffer
-   ↕
-clipboard (pbcopy / pbpaste → getreg('+') fallback)
-   ↕
-duras CLI (append / search / path / show / tags)
-   ↕
-plain text files (.dn)
-```
-
----
-
-# 6. Operational notes (a-Shell constraints)
-
-* `pbpaste` is the primary clipboard source; `getreg('+')` is the fallback if `pbpaste` returns empty
-* `pbcopy` may be missing → `setreg('+')` still sets the Vim register
-* system calls are synchronous → small latency on large note sets is expected and not handled
