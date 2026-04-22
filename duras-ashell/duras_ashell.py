@@ -30,7 +30,7 @@ if "imghdr" not in sys.modules:
     sys.modules["imghdr"] = _m
     del _m
 
-VERSION = "1.0.0"
+VERSION = "1.0.7"
 
 DEFAULT_NOTES_DIR = os.path.join(os.path.expanduser("~"), "Documents", "Notes")
 DEFAULT_BACKUPS_DIR = os.path.join(

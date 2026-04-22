@@ -1,9 +1,5 @@
 duras (1.0.0) testing; urgency=medium
 
-  * New subcommands: `duras audit`, `duras echo [DATE]`, `duras near [DATE]` and `duras mv FROM TO`.  
-  * `duras audit`: structural validation of the notes directory. Checks for stray files, invalid filenames, date/path mismatches, future-dated notes, plain+encrypted conflicts for the same date, and broken symlinks. Read-only; never modifies anything. Exits 0 if clean, 1 if issues found. Intended for periodic manual verification or scripted assertions.
-  * `duras echo [DATE]`: lists paths of all notes sharing the same month and day as DATE across all years, sorted descending by year. Pure calendar projection; no content is read. Defaults to today.
-  * `duras near [DATE]`: lists paths of notes within ±3 days of DATE in chronological order. Only existing notes are shown; both `.dn` and `.dn.gpg` variants are included. Window is fixed; no flags. Defaults to today.
-  * `duras mv FROM TO`: moves a note from one date slot to another. Accepts YYYY-MM-DD only (integer offsets not permitted — this is an index repair primitive, not navigation). Moves both `.dn` and `.dn.gpg` if present. Fails on collision or missing source. Creates target directories automatically; removes empty source directories after the move. Silent on success.
+  * Initial release.
   
- -- Sergiy Duras <sergiy@duras.org>  Wed, 19 Apr 2026 00:00:00 +0000
+ -- Sergiy Duras <sergiy@duras.org>  Wed, 22 Apr 2026 00:00:00 +0000
