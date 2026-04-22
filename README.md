@@ -12,7 +12,7 @@
 pip install duras
 ```
 
-Requires Python 3.13+. No dependencies. `gpg` optional for encrypted notes.
+Requires Python 3.9 or later. No dependencies. `gpg` optional for encrypted notes.
 
 ---
 
