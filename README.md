@@ -4,6 +4,8 @@
 
 **Daily notes as plain text files, with search and optional encryption.**
 
+Standalone tool, but most effectively used together with [duras_bridge](https://codeberg.org/duras/duras_bridge), a minimal [Vim](https://www.vim.org/) / [Neovim](https://neovim.io/) plugin that integrates the CLI directly into the text editor. 
+
 ---
 
 ## Install
