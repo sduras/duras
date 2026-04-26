@@ -1,0 +1,25 @@
+site_name: duras
+site_description: Daily notes as plain text files, with search and optional encryption.
+site_url: https://duras.readthedocs.io
+repo_url: https://codeberg.org/duras/duras
+repo_name: duras/duras
+
+theme:
+  name: readthedocs
+
+nav:
+  - Overview: index.md
+  - Installation: installation.md
+  - Commands: commands.md
+  - Workflows: workflows.md
+  - Encryption:
+    - Overview: encryption.md
+    - GPG Setup: gpg-setup.md
+  - File Format: file-format.md
+  - iOS / a-Shell: ios-ashell.md
+  - Contributing: contributing.md
+  - Changelog: changelog.md
+
+markdown_extensions:
+  - fenced_code
+  - tables
