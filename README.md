@@ -200,6 +200,7 @@ Future dates are rejected.
 ## Docs
 
 - `man duras`
+- <https://duras.readthedocs.io/en/latest/>
 - <https://codeberg.org/duras/duras/wiki>
 
 ---
