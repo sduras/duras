@@ -34,7 +34,7 @@ One note per day, stored as a plain text file:
 - No database, no hidden state
 - Atomic writes
 
-Encrypted notes use the `.dn.gpg` extension and are stored alongside plain notes.
+Encrypted notes use the `.dn.gpg` extension and are stored alongside plain text notes.
 
 ---
 
