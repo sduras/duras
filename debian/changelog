@@ -1,3 +1,22 @@
+duras (1.1.0) unstable; urgency=medium
+
+  * New note header format: single field "date: YYYY-MM-DD"; removed
+    "created:" field (redundant with first entry timestamp).
+  * New entry format: "YYYY-MM-DD HH:MM  text" (two spaces, no brackets);
+    improves grep-ability and log readability.
+  * append: TEXT argument is now optional; omitting it reads from stdin,
+    allowing "cmd | duras append" without the trailing "-".
+  * Normalize stdin/multi-line text on append: strip trailing whitespace
+    per line, collapse consecutive blank lines, convert tabs to spaces.
+  * Apply same normalization and future-date guard to confidential append.
+  * Write .editorconfig to notes directory on first run (utf-8, lf,
+    insert_final_newline, max_line_length=72).
+  * Editor cursor always positioned at line 2 on new notes (unified
+    header is always 2 lines).
+  * Drop planned "duras sync" command (risk/benefit not acceptable).
+
+ -- Sergiy Duras <sergiy@duras.org>  Mon, 28 Apr 2026 10:00:00 +0300
+
 duras (1.0.7) unstable; urgency=medium
 
   * Minor fixes.

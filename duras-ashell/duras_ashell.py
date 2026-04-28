@@ -30,7 +30,7 @@ if "imghdr" not in sys.modules:
     sys.modules["imghdr"] = _m
     del _m
 
-VERSION = "1.0.7"
+VERSION = "1.1.0"
 
 DEFAULT_NOTES_DIR = os.path.join(os.path.expanduser("~"), "Documents", "Notes")
 DEFAULT_BACKUPS_DIR = os.path.join(
@@ -116,26 +116,42 @@ def atomic_write_bytes(path: str, data: bytes) -> None:
         raise
 
 
-def note_header(date: datetime.date, is_today: bool = True) -> str:
-    now = datetime.datetime.now()
-    if is_today:
-        return f"{date.strftime(DATE_FMT)}\n{now.strftime('%H:%M')}\n\n"
-    return (
-        f"{date.strftime(DATE_FMT)}\ncreated: {now.strftime(DATETIME_FMT)}\n\n"
-    )
+def note_header(date: datetime.date) -> str:
+    return f"date: {date.strftime(DATE_FMT)}\n\n"
 
 
 def ensure_dir(path: str) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
 
-def init_note(path: str, date: datetime.date, is_today: bool = True) -> None:
-    atomic_write(path, note_header(date, is_today))
+def init_note(path: str, date: datetime.date) -> None:
+    atomic_write(path, note_header(date))
+
+
+def _clean_append_text(text: str) -> str:
+    if "\n" not in text:
+        return text.strip()
+    out: list[str] = []
+    prev_blank = False
+    for line in text.splitlines():
+        line = line.replace("\t", "    ").rstrip()
+        if line == "":
+            if not prev_blank:
+                out.append("")
+            prev_blank = True
+        else:
+            out.append(line)
+            prev_blank = False
+    while out and out[0] == "":
+        out.pop(0)
+    while out and out[-1] == "":
+        out.pop()
+    return "\n".join(out)
 
 
 def append_text(path: str, text: str) -> None:
     now = datetime.datetime.now().strftime(DATETIME_FMT)
-    line = f"[{now}] {text}\n"
+    line = f"{now}  {text}\n"
     existing = ""
     if os.path.exists(path):
         with open(path, encoding="utf-8") as f:
@@ -219,7 +235,6 @@ def open_confidential_in_editor(
     enc_path: str,
     date: datetime.date,
     extra_args: Optional[list[str]] = None,
-    is_today: bool = True,
 ) -> None:
     tmp_dir = tempfile.mkdtemp(prefix="duras-")
     tmp_path = os.path.join(tmp_dir, f"{date.strftime(DATE_FMT)}.dn")
@@ -227,7 +242,7 @@ def open_confidential_in_editor(
         plaintext = (
             gpg_decrypt(enc_path)
             if os.path.exists(enc_path)
-            else note_header(date, is_today).encode("utf-8")
+            else note_header(date).encode("utf-8")
         )
         with open(tmp_path, "wb") as f:
             f.write(plaintext)
@@ -257,26 +272,25 @@ def cmd_open(
     if confidential:
         enc_path = note_path(date, confidential=True)
         ensure_dir(enc_path)
-        open_confidential_in_editor(
-            enc_path, date, extra_args or None, date == t
-        )
+        open_confidential_in_editor(enc_path, date, extra_args or None)
     else:
         path = note_path(date)
         ensure_dir(path)
         is_new = not os.path.exists(path)
         if is_new:
-            init_note(path, date, date == t)
-        open_in_editor(path, extra_args or (["+4"] if is_new else []))
+            init_note(path, date)
+        open_in_editor(path, extra_args or (["+2"] if is_new else []))
 
 
 def cmd_append(date: datetime.date, text: str) -> None:
+    text = _clean_append_text(text)
     t = today()
     if date > t:
         die(f"cannot append to future date: {date}")
     path = note_path(date)
     ensure_dir(path)
     if not os.path.exists(path):
-        init_note(path, date, date == t)
+        init_note(path, date)
     append_text(path, text)
 
 
@@ -459,7 +473,12 @@ Options:
 
     p_app = sub.add_parser("append")
     p_app.add_argument("-d", "--date", dest="date")
-    p_app.add_argument("text")
+    p_app.add_argument(
+        "text",
+        nargs="?",
+        default=None,
+        help="text to append; omit to read from stdin",
+    )
 
     p_show = sub.add_parser("show")
     p_show.add_argument("date", nargs="?")
@@ -521,7 +540,15 @@ def main() -> None:
     elif args.cmd == "append":
         if args.confidential:
             die("--confidential not supported for append")
-        cmd_append(get_date(), args.text)
+        if args.text is None or args.text == "-":
+            if sys.stdin.isatty():
+                die("no text given and stdin is a terminal")
+            text = sys.stdin.read().rstrip("\n")
+            if not text:
+                die("no text read from stdin")
+        else:
+            text = args.text
+        cmd_append(get_date(), text)
     elif args.cmd == "show":
         cmd_show(get_date(), args.confidential)
     elif args.cmd == "list":
