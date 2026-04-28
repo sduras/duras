@@ -1,6 +1,6 @@
 # Workflows
 
-Concrete patterns for daily use.
+Practical patterns for daily use.
 
 ---
 
@@ -12,7 +12,7 @@ Open today's note once in the morning:
 duras
 ```
 
-For quick captures without opening an editor:
+Quick captures without opening an editor:
 
 ```sh
 duras append "called bank re: account — follow up Thursday"
@@ -20,40 +20,38 @@ duras append "article to read: example.com/post #reading"
 duras append "fix null check in login handler #todo"
 ```
 
-Pipe command output directly into a note:
+Pipe command output directly:
 
 ```sh
-df -h | duras append -
-git log --oneline -10 | duras append -
+df -h | duras append
+git log --oneline -10 | duras append
 ```
 
 ---
 
 ## Tagging
 
-Tags are `#word` tokens anywhere in note text, collected by `duras tags`
-with no configuration.
+Tags are `#word` tokens anywhere in note text, collected by `duras tags` with no configuration. Any word prefixed with `#` becomes a tag — no setup, no schema.
 
-A minimal system that works well:
+A practical starting set:
 
 | Tag | Meaning |
-| --- | ------- |
-| `#todo` | Action item, not yet done |
-| `#done` | Completed item |
-| `#reading` | Article or book to read |
-| `#idea` | Loose thought to revisit |
+|---|---|
+| `#task` | Actionable item |
+| `#done` | Completed task |
+| `#idea` | Thought to revisit |
 | `#ref` | Reference to keep |
+| `#read` | Article or book to read |
+| `#waiting` | Blocked on someone else |
+| `#buy` | Item to purchase |
+| `#log` | Factual record |
+
+Tags are just text. `duras tags task` finds every note containing `#task`. `grep -r "#task" "$(duras dir)"` does the same without duras. No tag has special meaning to the tool — the system is entirely what you make of it.
 
 Find all notes with open items:
 
 ```sh
 duras tags todo
-```
-
-Count how often each tag appears:
-
-```sh
-duras tags
 ```
 
 ---
@@ -66,7 +64,7 @@ List last week's notes:
 duras list -n 7
 ```
 
-Print all of last week to stdout:
+Print all entries across the last week:
 
 ```sh
 for i in -6 -5 -4 -3 -2 -1 0; do duras show $i; echo "---"; done | less
@@ -81,17 +79,17 @@ duras search "login bug"
 duras search todo -i         # case-insensitive
 ```
 
-For more complex queries, use `grep` directly:
+For more complex queries, use grep directly against the entry format:
 
 ```sh
-grep -r "keyword" "$(duras dir)"
-grep -rl "#todo" "$(duras dir)"    # files containing #todo
-```
+# all entries matching a keyword
+grep -r "^2026-" "$(duras dir)" | grep "keyword"
 
-Count lines across all notes:
+# files containing a tag
+grep -rl "#todo" "$(duras dir)"
 
-```sh
-find "$(duras dir)" -name "*.dn" | xargs wc -l
+# entries from a specific month
+grep -h "^2026-04-" "$(duras dir)"/**/*.dn | sort
 ```
 
 ---
@@ -133,6 +131,12 @@ Word count of today's note:
 
 ```sh
 wc -w "$(duras path)"
+```
+
+All entries across all notes, sorted:
+
+```sh
+grep -rh "^2026-" "$(duras dir)"/**/*.dn | sort
 ```
 
 Print today's date in scripts:

@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0
+
+- New note header format: single field `date: YYYY-MM-DD`; removed
+  `created:` field (redundant with first entry timestamp)
+- New entry format: `YYYY-MM-DD HH:MM  text` (two spaces, no brackets);
+  improves grep-ability and matches log conventions
+- `append`: TEXT argument is now optional; omitting it reads from stdin,
+  allowing `cmd | duras append` without the trailing `-`
+- Normalize stdin/multi-line text on append: strip trailing whitespace
+  per line, collapse consecutive blank lines, convert tabs to spaces
+- Apply same normalization and future-date guard to confidential append
+- Write `.editorconfig` to notes directory on first run (utf-8, lf,
+  `insert_final_newline`, `max_line_length=72`)
+- Editor cursor always positioned at line 2 on new notes (header is
+  always one line plus one blank line)
+- Drop planned `duras sync` command (risk/benefit not acceptable).
+
 ## 1.0.7
 
 - Fix vi/nvi "Illegal address" error on OpenBSD when opening a new note

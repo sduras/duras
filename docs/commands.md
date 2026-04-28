@@ -1,6 +1,6 @@
 # Commands
 
-Full command reference. For quick examples see the [Workflows](workflows.md) page.
+Full command reference. For usage patterns see [Workflows](workflows.md).
 
 ---
 
@@ -31,29 +31,37 @@ duras -c open           # open encrypted note
 
 Arguments after `--` are passed verbatim to the editor.
 
-New notes are opened with the cursor on the first blank line after the header.
+New notes receive a single-line header (`date: YYYY-MM-DD`) followed by a
+blank line. The editor cursor opens on that blank line.
 
 ---
 
 ## append
 
-Append a timestamped line to a note without opening an editor.
+Append a timestamped entry to a note without opening an editor.
 
 ```sh
 duras append "text"
 duras append -d -1 "text"       # append to yesterday
 duras append -d 2026-04-01 "x"  # append to absolute date
-cat file | duras append -        # read from stdin
+cat file | duras append          # read from stdin (no - needed)
+cmd | duras append               # pipe directly
 duras -c append "secret"         # append to encrypted note
 ```
 
-`-` reads from stdin. Empty stdin is an error.
+When `text` is omitted and stdin is not a terminal, stdin is read
+automatically. `-` may still be given explicitly. Empty input is an error.
 
-The appended line format is:
+Multi-line stdin is normalised before writing: trailing whitespace stripped
+per line, consecutive blank lines collapsed to one, tabs converted to spaces.
+
+Entries are written as:
 
 ```
-[YYYY-MM-DD HH:MM] text
+YYYY-MM-DD HH:MM  text
 ```
+
+Two spaces separate the timestamp from the text.
 
 ---
 
@@ -83,8 +91,8 @@ duras list -n 20        # last 20 notes
 duras list -n 0         # all notes
 ```
 
-Output is sorted by filename (ISO date), newest first. Each line shows:
-mtime, size, filename, and a lock symbol for encrypted notes.
+Output sorted by filename (ISO date), newest first. Each line shows mtime,
+size, filename, and a lock symbol for encrypted notes.
 
 ---
 
@@ -103,11 +111,11 @@ Encrypted notes are skipped. A count of skipped notes is printed to stderr.
 
 ## tags
 
-List all `#tags` found across plain notes, or find notes containing a specific tag.
+List all `#tags` found across plain notes, or find notes containing a tag.
 
 ```sh
-duras tags                   # list all tags with occurrence counts
-duras tags project           # list notes containing #project
+duras tags                   # all tags with occurrence counts
+duras tags project           # notes containing #project
 duras tags "#project"        # same; leading # is stripped
 ```
 
@@ -123,8 +131,8 @@ Print summary statistics.
 duras stats
 ```
 
-Output includes: note counts (plain/encrypted/total), total size, date range,
-and current streak (consecutive days with at least one note).
+Output includes: note counts (plain/encrypted/total), total size, date
+range, and current streak (consecutive days with at least one note).
 
 ---
 
@@ -137,9 +145,6 @@ duras export                    # export to current directory
 duras export ~/backup           # export to ~/backup/
 duras export ~/backup --encrypt # encrypt the archive with gpg
 ```
-
-Without `--encrypt`, the archive is plaintext. Encrypted `.dn.gpg` files
-are included in their encrypted form.
 
 With `--encrypt`, the archive is piped directly into GPG. No plaintext
 `.tar.gz` is written to disk.
@@ -163,7 +168,7 @@ The file does not need to exist. Useful in scripts:
 
 ```sh
 wc -w "$(duras path)"
-$EDITOR "$(duras path -1)"
+grep "^2026-" "$(duras path -1)"
 ```
 
 ---
@@ -206,7 +211,7 @@ Checks for: unexpected files or directories, filename/path mismatches,
 future-dated notes, broken symlinks, and dates with both `.dn` and `.dn.gpg`
 present simultaneously.
 
-Exits with code `1` if any issues are found. Output goes to stdout.
+Exits with code `1` if any issues are found. Never modifies anything.
 
 ---
 
@@ -217,7 +222,6 @@ List notes that share the same month and day, across all years.
 ```sh
 duras echo              # notes on today's MM-DD in all years
 duras echo 2026-04-01   # notes on April 1 in all years
-duras echo -30          # notes on the date 30 days ago, across all years
 ```
 
 ---
@@ -265,13 +269,17 @@ Future dates are rejected.
 
 ---
 
-## Environment variables
+## Environment
 
-| Variable | Default | Meaning |
-| -------- | ------- | ------- |
-| `DURAS_DIR` | `~/Documents/Notes` | Notes root directory |
-| `EDITOR` | nano / vi / ed | Editor command |
-| `DURAS_GPG_KEY` | (first secret key) | GPG recipient for encryption |
+| variable        | meaning                                      |
+| --------------- | -------------------------------------------- |
+| `DURAS_DIR`     | notes directory (default: ~/Documents/Notes) |
+| `EDITOR`        | editor (fallback: nano, vi, ed)              |
+| `DURAS_GPG_KEY` | GPG recipient (default: self)                |
+
+`.editorconfig` is written to the notes directory on first run. 
+It configures any supporting editor to use UTF-8, LF line endings,
+and 72-column line length for `.dn` files.
 
 ---
 

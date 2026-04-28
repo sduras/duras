@@ -20,54 +20,94 @@ Rules enforced by `duras audit`:
 - Only `YYYY/` directories at the notes root (four-digit year).
 - Only `MM/` directories inside each year directory (two-digit, 01–12).
 - Only files named `YYYY-MM-DD.dn` or `YYYY-MM-DD.dn.gpg` inside month directories.
-- The date in the filename must match the enclosing `YYYY/MM/` path.
+- The `date:` header field must match the enclosing `YYYY/MM/` path and filename.
 - No future-dated notes.
 - No date with both `.dn` and `.dn.gpg` present simultaneously.
 - No broken symlinks at any level.
 
-duras creates directories as needed and never creates files outside this
+**duras** creates directories as needed and never creates files outside this
 structure.
 
 ---
 
 ## Plain note (.dn)
 
-UTF-8 plain text. Header written for a new note opened on the current day:
+UTF-8 plain text, LF line endings. The header is always exactly one line:
 
 ```
-2026-04-20
+date: YYYY-MM-DD
+```
+
+A blank line follows the header. Entries written by `duras append` appear
+on subsequent lines:
+
+```
+date: 2026-04-28
+
+2026-04-28 09:10  started work
+2026-04-28 14:32  fix null check in login handler #todo
+2026-04-28 16:00  called bank re: account — follow up Thursday
+```
+
+The two-space separator between timestamp and text enables clean extraction
+with standard tools:
+
+```sh
+grep "^date: 2026-04" *.dn        # find all April 2026 notes
+grep "^2026-04-28" *.dn           # find all entries for a date
+awk '{print substr($0,18)}' *.dn  # extract text from entries
+```
+
+Files edited directly with other tools are read without complaint. The
+header is a convention; duras does not parse note content beyond the
+`date:` field.
+
+---
+
+## Backward compatibility
+
+Notes written by duras 1.0.x used a different header and entry format:
+
+```
+2026-04-27
 14:32
 
+[2026-04-27 14:32] text of entry
 ```
 
-Header written for a note opened on a past date:
-
-```
-2026-04-18
-created: 2026-04-20 14:32
-
-```
-
-Appended lines (via `duras append`) follow this format:
-
-```
-[2026-04-20 15:10] text of the appended entry
-```
-
-The header is a convention, not enforced. Files edited directly with other
-tools are read without complaint.
+These notes remain fully readable as plain text. duras 1.1.0 does not
+migrate existing notes. Old and new format notes coexist in the same
+directory without issue.
 
 ---
 
 ## Encrypted note (.dn.gpg)
 
 A GPG-encrypted blob whose decrypted content is identical in format to a
-plain `.dn` file. The encryption format is standard GPG; the file can be
-decrypted with any GPG-compatible tool:
+plain `.dn` file. Decrypt with any GPG-compatible tool:
 
 ```sh
-gpg --decrypt ~/Documents/Notes/2026/04/2026-04-20.dn.gpg
+gpg --decrypt ~/Documents/Notes/2026/04/2026-04-28.dn.gpg
 ```
+
+---
+
+## .editorconfig
+
+On first run, duras writes a `.editorconfig` file to the notes root:
+
+```ini
+[*.dn]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+max_line_length = 72
+```
+
+Written once to the notes directory on first run. Configures 
+supporting editors (Neovim 0.9+, VS Code, JetBrains) to use UTF-8,
+LF line endings, and 72-column line length for .dn files. The file
+is written once and never modified by duras.
 
 ---
 
@@ -101,11 +141,11 @@ existing note.
 Because notes are plain UTF-8 files, standard Unix tools work directly:
 
 ```sh
-# full-text search
-grep -r "keyword" "$(duras dir)"
+# find all notes containing a tag
+grep -rl "#todo" "$(duras dir)"
 
-# list all note files sorted by date
-find "$(duras dir)" -name "*.dn" | sort
+# list all entries across all notes, sorted by timestamp
+grep -h "^2026-" "$(duras dir)"/**/*.dn | sort
 
 # word count across all notes
 find "$(duras dir)" -name "*.dn" | xargs wc -w | tail -1
@@ -114,4 +154,4 @@ find "$(duras dir)" -name "*.dn" | xargs wc -w | tail -1
 $EDITOR ~/Documents/Notes/2026/04/2026-04-01.dn
 ```
 
-Encrypted notes (`.dn.gpg`) require GPG for access.
+Encrypted notes (`.dn.gpg`) require the GNU Privacy Guard for access.
