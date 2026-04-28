@@ -18,13 +18,21 @@ import tarfile
 import tempfile
 from typing import Optional
 
-VERSION = "1.0.7"
+VERSION = "1.1.0"
 
 DEFAULT_NOTES_DIR = os.path.join(os.path.expanduser("~"), "Documents", "Notes")
 NOTE_EXT = ".dn"
 ENC_EXT = ".dn.gpg"
 DATE_FMT = "%Y-%m-%d"
 DATETIME_FMT = "%Y-%m-%d %H:%M"
+
+_EDITORCONFIG = """\
+[*.dn]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+max_line_length = 72
+"""
 
 
 class DurasError(Exception):
@@ -136,8 +144,8 @@ def _parse_note_filename(
         return None, f"filename date {stem!r} is not a valid YYYY-MM-DD date"
 
 
-def _header_lines(date: datetime.date, is_today: bool) -> int:
-    return 3
+def _header_lines() -> int:
+    return 2
 
 
 def ensure_dir(path: str) -> None:
@@ -153,6 +161,12 @@ def _ensure_notes_dir_perms() -> None:
             os.chmod(d, 0o700)
     except OSError:
         pass
+    ec = os.path.join(d, ".editorconfig")
+    if not os.path.exists(ec):
+        try:
+            atomic_write(ec, _EDITORCONFIG)
+        except OSError:
+            pass
 
 
 def _secure_tmpdir() -> str:
@@ -213,22 +227,38 @@ def atomic_write_bytes(path: str, data: bytes) -> None:
         raise
 
 
-def note_header(date: datetime.date, is_today: bool = True) -> str:
-    now = datetime.datetime.now()
-    if is_today:
-        return f"{date.strftime(DATE_FMT)}\n{now.strftime('%H:%M')}\n\n"
-    return (
-        f"{date.strftime(DATE_FMT)}\ncreated: {now.strftime(DATETIME_FMT)}\n\n"
-    )
+def note_header(date: datetime.date) -> str:
+    return f"date: {date.strftime(DATE_FMT)}\n\n"
 
 
-def init_note(path: str, date: datetime.date, is_today: bool = True) -> None:
-    atomic_write(path, note_header(date, is_today))
+def init_note(path: str, date: datetime.date) -> None:
+    atomic_write(path, note_header(date))
+
+
+def _clean_append_text(text: str) -> str:
+    if "\n" not in text:
+        return text.strip()
+    out: list[str] = []
+    prev_blank = False
+    for line in text.splitlines():
+        line = line.replace("\t", "    ").rstrip()
+        if line == "":
+            if not prev_blank:
+                out.append("")
+            prev_blank = True
+        else:
+            out.append(line)
+            prev_blank = False
+    while out and out[0] == "":
+        out.pop(0)
+    while out and out[-1] == "":
+        out.pop()
+    return "\n".join(out)
 
 
 def append_text(path: str, text: str) -> None:
     now = datetime.datetime.now().strftime(DATETIME_FMT)
-    line = f"[{now}] {text}\n"
+    line = f"{now}  {text}\n"
     existing = ""
     if os.path.exists(path):
         try:
@@ -300,7 +330,6 @@ def open_confidential_in_editor(
     enc_path: str,
     date: datetime.date,
     extra_args: Optional[list[str]] = None,
-    is_today: bool = True,
 ) -> None:
     tmp_dir = _secure_tmpdir()
     tmp_path = os.path.join(tmp_dir, f"{date.strftime(DATE_FMT)}.dn")
@@ -308,7 +337,7 @@ def open_confidential_in_editor(
         plaintext = (
             gpg_decrypt(enc_path)
             if os.path.exists(enc_path)
-            else note_header(date, is_today).encode("utf-8")
+            else note_header(date).encode("utf-8")
         )
         with open(tmp_path, "wb") as f:
             f.write(plaintext)
@@ -334,7 +363,6 @@ def open_confidential_in_editor(
 def cmd_open(
     date: datetime.date, confidential: bool, extra_args: list[str]
 ) -> None:
-    is_today = date == today()
     if date > today():
         raise DurasInputError(
             f"cannot open a note for a future date: {date.strftime(DATE_FMT)}"
@@ -342,24 +370,28 @@ def cmd_open(
     if confidential:
         enc_path = note_path(date, confidential=True)
         ensure_dir(enc_path)
-        open_confidential_in_editor(enc_path, date, extra_args, is_today)
+        open_confidential_in_editor(enc_path, date, extra_args)
     else:
         path = note_path(date)
         ensure_dir(path)
         is_new = not os.path.exists(path)
         if is_new:
-            init_note(path, date, is_today)
+            init_note(path, date)
         ea = extra_args or (
-            ["+" + str(_header_lines(date, is_today) + 1)] if is_new else []
+            [f"+{_header_lines()}"] if is_new else []
         )
         open_in_editor(path, ea)
 
 
 def cmd_append_confidential(date: datetime.date, text: str) -> None:
+    text = _clean_append_text(text)
+    if date > today():
+        raise DurasInputError(
+            f"cannot append to a future date: {date.strftime(DATE_FMT)}"
+        )
     enc_path = note_path(date, confidential=True)
-    is_today = date == today()
     now = datetime.datetime.now().strftime(DATETIME_FMT)
-    line = f"[{now}] {text}\n"
+    line = f"{now}  {text}\n"
     if os.path.exists(enc_path):
         existing = gpg_decrypt(enc_path).decode("utf-8", errors="replace")
         if existing and not existing.endswith("\n"):
@@ -367,13 +399,14 @@ def cmd_append_confidential(date: datetime.date, text: str) -> None:
         new_content = existing + line
     else:
         ensure_dir(enc_path)
-        new_content = note_header(date, is_today) + line
+        new_content = note_header(date) + line
     gpg_encrypt(new_content.encode("utf-8"), enc_path)
 
 
 def cmd_append(
     date: datetime.date, text: str, confidential: bool = False
 ) -> None:
+    text = _clean_append_text(text)
     if date > today():
         raise DurasInputError(
             f"cannot append to a future date: {date.strftime(DATE_FMT)}"
@@ -381,11 +414,10 @@ def cmd_append(
     if confidential:
         cmd_append_confidential(date, text)
         return
-    is_today = date == today()
     path = note_path(date)
     ensure_dir(path)
     if not os.path.exists(path):
-        init_note(path, date, is_today)
+        init_note(path, date)
     append_text(path, text)
 
 

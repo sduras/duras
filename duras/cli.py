@@ -45,7 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
         epilog="""
 SUBCOMMANDS
   open [DATE] [-- ARGS]   Open note in $EDITOR; pass ARGS after --
-  append [-d DATE] TEXT   Append timestamped line; "-" reads stdin
+  append [-d DATE] [TEXT] Append timestamped line; omit TEXT to read stdin
   show [DATE]             Print note to stdout
   list [-n N]             List recent notes (default: 10, 0 = all)
   search KEYWORD [-i]     Search plain notes (literal, -i = ignore case)
@@ -65,9 +65,9 @@ DATE FORMATS
   INTEGER                 Relative offset: 0 (today), -1 (yesterday)
 
 ENVIRONMENT
-  DURAS_DIR                Notes directory (default: ~/Documents/Notes)
+  DURAS_DIR               Notes directory (default: ~/Documents/Notes)
   EDITOR                  Editor (fallback: nano, vi, ed)
-  DURAS_GPG_KEY            GPG recipient (default: self)
+  DURAS_GPG_KEY           GPG recipient (default: self)
 
 COMMON WORKFLOWS
   duras                    Open today's note
@@ -75,8 +75,9 @@ COMMON WORKFLOWS
   duras open -- +10        Open note and jump to line 10 in editor
 
   duras append "note"      Append to today
-  duras append -d -1 "x"   Append to yesterday
-  cat file.txt | duras append -   Append stdin
+  duras append -d -1 "x"  Append to yesterday
+  cat file.txt | duras append   Append stdin
+  cmd | duras append            Pipe directly into today's note
 
   duras -c open            Open encrypted note
   duras -c append "secret" Append encrypted entry
@@ -103,8 +104,10 @@ COMMON WORKFLOWS
 
   duras mv 2026-04-17 2026-04-16   Move a misdated note (YYYY-MM-DD only)
 
-NOTES
+NOTE FORMAT
   Files are plain text (.dn); encrypted notes use .dn.gpg
+  Header:  date: YYYY-MM-DD
+  Entries: YYYY-MM-DD HH:MM  text
   Encrypted notes are skipped by search and tags
 
 EXIT CODES
@@ -115,6 +118,7 @@ EXIT CODES
   4  External tool failure
 
 Documentation:
+  https://duras.readthedocs.io/en/latest/
   https://codeberg.org/duras/duras
 """,
     )
@@ -142,7 +146,12 @@ Documentation:
     p_app.add_argument(
         "-d", "--date", dest="date", help="YYYY-MM-DD or offset (default: 0)"
     )
-    p_app.add_argument("text", help="text to append or '-' for stdin")
+    p_app.add_argument(
+        "text",
+        nargs="?",
+        default=None,
+        help="text to append; omit to read from stdin",
+    )
 
     p_show = sub.add_parser("show", help="print note to stdout")
     p_show.add_argument(
@@ -242,7 +251,11 @@ def main() -> None:
 
         elif args.cmd == "append":
             date = parse_date(args.date) if args.date else today()
-            if args.text == "-":
+            if args.text is None or args.text == "-":
+                if sys.stdin.isatty():
+                    raise DurasInputError(
+                        "no text given and stdin is a terminal"
+                    )
                 text = sys.stdin.read().rstrip("\n")
                 if not text:
                     raise DurasInputError("no text read from stdin")
